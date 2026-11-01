@@ -2,7 +2,7 @@
 
 *Fundamentos del Desarrollo de Videojuegos*' assignment: 2D tilemaps and 2D physics exercises.
 
-![The assignment's demo scene](Media/demo.gif)
+![The assignment's demo scene](Media/task6_scene.gif)
 
 > Reuse the Unity 2D project you've been working on. The objective of this session is to familiarize yourself with the map editor in Unity, as well as implementing mechanics that use the physics engine.
 > - **2D Physics**: working with them is quite similar to 3D, even though the engines are independent. Every 2D component has the same name as their 3D variants, but with the "2D" suffix.
