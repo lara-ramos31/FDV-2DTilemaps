@@ -119,7 +119,7 @@ public class Task3_NoRotationMovement : MonoBehaviour
     private Vector2 movement;
     private SpriteRenderer spriteRenderer;
     private Animator animator;
-    private Vector3 restingPosition;
+    private Vector2 restingPosition;
 
     void Start()
     {
@@ -139,7 +139,7 @@ public class Task3_NoRotationMovement : MonoBehaviour
         } else if (horizontalInput < 0) { // facing left
             spriteRenderer.flipX = true;
         }
-        float distanceThisFrame = Vector3.Distance(restingPosition, transform.position);
+        float distanceThisFrame = Vector2.Distance(restingPosition, transform.position);
         if (distanceThisFrame >= minWalkingDistance) {
             animator.SetBool("isWalking", true);
         } else {
@@ -166,7 +166,7 @@ public class Task3_RotationMovement : MonoBehaviour
     private Vector2 movement;
     private SpriteRenderer spriteRenderer;
     private Animator animator;
-    private Vector3 restingPosition;
+    private Vector2 restingPosition;
 
     void Start()
     {
@@ -187,7 +187,7 @@ public class Task3_RotationMovement : MonoBehaviour
         } else if (verticalInput < 0) { // facing left
             spriteRenderer.flipX = true;
         }
-        float distanceThisFrame = Vector3.Distance(restingPosition, transform.position);
+        float distanceThisFrame = Vector2.Distance(restingPosition, transform.position);
         if (distanceThisFrame >= minWalkingDistance) {
             animator.SetBool("isWalking", true);
         } else {
