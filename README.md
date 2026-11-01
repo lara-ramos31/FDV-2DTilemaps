@@ -19,8 +19,6 @@
 4. [Task 4](#task-4)
 5. [Task 5](#task-5)
 6. [Task 6](#task-6)
-7. [Task 7](#task-7)
-8. [Task 8](#task-8)
 
 ## Task 1
 > In this first task, we'll work with the fundamental elements of the game map. You'll have to work with the **Grid**, **Tilemap** and **Tile Palette** elements.
@@ -52,7 +50,7 @@ With a palette that uses this tilesheet, the resulting scene looks like this:
 
 ![The editor with task 2's changes](Media/task2_editor.png)
 
-Since the previous task's tilemap served as a map skeleton, I renamed it to `ObstacleTilemap` and added an independent `DecorativeTilemap` for decorative elements, as well as a `BackgroundTilemap` for the background. The `ObstacleTilemap` has a static `Rigidbody2D`, as well as a `CompositeCollider2D`. I also set up custom general and sorting layers, and placed each tilemap were they belong:
+Since the previous task's tilemap served as a map skeleton, I renamed it to `ObstacleTilemap` and added an independent `DecorativeTilemap` for decorative elements, as well as a `BackgroundTilemap` for the background. The `ObstacleTilemap` has a static `Rigidbody2D`, as well as a `CompositeCollider2D` and a `TilemapCollider2D` set to "Merge". I also set up custom general and sorting layers, and placed each tilemap were they belong:
 
 ![The inspector showing the new layers](Media/task2_layers.png)
 
@@ -204,12 +202,182 @@ Note that the flipping logic in this case uses the `verticalInput`, since it is 
 
 > Write a player movement script assuming it responds to physics.
 
+![The scene with the new physics-based movement script](Media/task4_scene.gif)
 
+For the player to react to physics, it must have a dynamic `Rigidbody2D`, and a `BoxCollider2D`. Then, we apply the movement inside `FixedUpdate()`, just like when working in 3D:
+
+```c#
+using UnityEngine;
+
+[RequireComponent(
+    typeof(SpriteRenderer), 
+    typeof(Animator),
+    typeof(Rigidbody2D)
+)]
+public class Task4_PhysicsMovement : MonoBehaviour
+{
+    public float hForce = 6.7f;
+    public float vForce = 15.0f;
+    public float minWalkingDistance = 0.001f;
+    public float jumpSeconds = 1.3f;
+    private Vector2 movement;
+    private SpriteRenderer spriteRenderer;
+    private Animator animator;
+    private Rigidbody2D rb;
+    private Vector2 restingPosition;
+
+    void Start()
+    {
+        spriteRenderer = GetComponent<SpriteRenderer>();
+        animator = GetComponent<Animator>();
+        rb = GetComponent<Rigidbody2D>();
+        restingPosition = transform.position;
+    }
+
+    void Update()
+    {
+        float horizontalInput = Input.GetAxisRaw("Horizontal");
+        float verticalInput = Input.GetAxisRaw("Vertical");
+        movement.Set(horizontalInput, verticalInput);
+        float distanceThisFrame = Vector2.Distance(restingPosition, transform.position);
+        if (distanceThisFrame >= minWalkingDistance) {
+            animator.SetBool("isWalking", true);
+        } else {
+            animator.SetBool("isWalking", false);
+        }
+        restingPosition = transform.position;
+    }
+
+    void FixedUpdate()
+    {
+        Vector2 forceVec = new(hForce * movement.x, vForce * movement.y);
+        rb.AddForce(Time.fixedDeltaTime * forceVec, ForceMode2D.Impulse);
+        if (movement.x > 0) { // facing right
+            spriteRenderer.flipX = false;
+        } else if (movement.x < 0) { // facing left
+            spriteRenderer.flipX = true;
+        }
+    }
+}
+```
 
 ## Task 5
 
-> Add an object spanning a certain area that can launch the player towards another zomascone of the map.
+> Add an object spanning a certain area that can launch the player towards another zone of the map.
+
+![The scene showing the new element](Media/task5_scene.gif)
+
+This task was simple: we only have to add a new empy object, and include the `AreaEffector2D` and `BoxCollider2D` components. In this case, the zone tries to propel the player back to the left of the map. Since I don't want the area to act as a physical wall, I enabled the `IsTrigger` property.
+
+![A screenshot of the inspector showing the new object's components](Media/task5_inspector.png)
 
 ## Task 6
 
 > Create an enemy that follows the player, dragging a dangerous pet. If the player is within a certain distance, the rabid pet will make the player lose points.
+
+![The scene with the new elements](Media/task6_scene.gif)
+
+For this task, I chose to write three new scripts. The first two are for the enemy and its pet, then the other one is for the player. In the scene, the bat enemy (with a collider and a kinematic rigidbody) is constantly following the player:
+
+```c#
+using UnityEngine;
+
+[RequireComponent(
+    typeof(SpriteRenderer), 
+    typeof(Rigidbody2D)
+)]
+public class Task6_Enemy : MonoBehaviour
+{
+    public float speed = 2.0f;
+    public float minDistance = 2.0f;
+    public Transform objective;
+    private Vector2 movement;
+    private SpriteRenderer renderer;
+    private Rigidbody2D rb;
+
+    void Start()
+    {
+        rb = GetComponent<Rigidbody2D>();
+        renderer = GetComponent<SpriteRenderer>();
+        if (objective == null) {
+            Debug.LogError("Enemy: no objective set!");
+        }
+    }
+
+    void Update()
+    {
+        movement = objective.position - transform.position;
+        if (movement.magnitude <= minDistance) {
+            movement.Set(0, 0);
+            return;
+        }
+        movement.Normalize();
+        if (movement.x < 0.0f) {
+            renderer.flipX = false;
+        } else {
+            renderer.flipX = true;
+        }
+    }
+
+    void FixedUpdate()
+    {
+        rb.linearVelocity = speed * movement;
+    }
+}
+```
+
+By using `linearVelocity` I force the bat to move at a constant speed.
+
+![A screenshot of the inspector showing the RabidPet's components](Media/task6_inspector.png)
+
+The RabidPet has a dynamic rigidbody with a circular collider so that it is fully affected by physics. It is bound to the bat by using a spring joint pointed towards the enemy.
+
+```c#
+using UnityEngine;
+
+[RequireComponent(typeof(SpriteRenderer))]
+public class Task6_Pet : MonoBehaviour
+{
+    public float distanceThreshold = 2.5f;
+    public float scorePenaltyPerSecond = 100f;
+    public GameObject player;
+    private Task6_PlayerScore player_score;
+    private SpriteRenderer renderer;
+
+    void Start()
+    {
+        if (player == null) {
+            Debug.LogError("Pet: no player!");
+        }
+        player_score = player.GetComponent<Task6_PlayerScore>();
+        if (player_score == null) {
+            Debug.LogError("Pet: no score!");
+        }
+        renderer = GetComponent<SpriteRenderer>();
+    }
+
+    void Update() 
+    {
+        float distance = Vector2.Distance(player.transform.position, transform.position);
+        if (distance <= distanceThreshold) {
+            player_score.score -= scorePenaltyPerSecond * Time.deltaTime;
+            renderer.color = Color.red;
+        } else {
+            renderer.color = Color.white;
+        }
+    }
+}
+```
+
+To subtract from the player's score, it monitors the distance to it. If it is below a certain threshold, it changes color to red and begins subtracting points. Finally, the player's score is managed by a new script:
+
+```c#
+using UnityEngine;
+
+public class Task6_PlayerScore : MonoBehaviour
+{
+    public float score = 5000;
+}
+```
+
+In this simple case it just adds a public attribute for the pet to end up modifying.
